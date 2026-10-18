@@ -136,6 +136,12 @@ export function Icon({ name }) {
         <path d="M12 5v14M6.5 13.5 12 19l5.5-5.5" />
       </svg>
     );
+  if (name === 'download')
+    return (
+      <svg {...common}>
+        <path d="M12 4v11M7 10.5l5 5 5-5M5 19.5h14" />
+      </svg>
+    );
   if (name === 'external')
     return (
       <svg {...common}>

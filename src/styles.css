@@ -736,6 +736,21 @@ ul {
   line-height: 1.6;
 }
 
+.save {
+  margin: 0.4rem 0 2rem;
+}
+
+.save .btn:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+
+.save__msg {
+  margin-top: 0.8rem;
+  font-size: 1rem;
+  color: var(--rose-deep);
+}
+
 .closing__date {
   font-family: var(--font-num);
   font-size: 1rem;

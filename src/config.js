@@ -71,6 +71,7 @@ export const config = {
       location: { eyebrow: 'مكان الحفلة', title: 'مستنيينكم في', button: 'افتح اللوكيشن' },
       closing: { line: 'وجودكم معانا هو أجمل هدية', withLove: 'مع كل الحب' },
       music: { play: 'موسيقى', pause: 'إيقاف', off: 'غير متاحة', playLabel: 'تشغيل الموسيقى', pauseLabel: 'إيقاف الموسيقى', blocked: 'المتصفح منع التشغيل، جرّب تاني', failed: 'الموسيقى غير متاحة حاليًا' },
+      save: { button: 'احفظ الدعوة كصورة', working: 'جاري تجهيز الصورة…', failed: 'تعذّر حفظ الصورة، جرّب تاني', fileName: 'ahmed-asmaa-engagement-invitation-ar.png' },
       switchTo: { label: 'English', href: 'en.html', lang: 'en' },
     },
 
@@ -101,6 +102,7 @@ export const config = {
       location: { eyebrow: 'Where We Celebrate', title: 'Join Us At', button: 'View Location' },
       closing: { line: 'Your presence is the most beautiful gift', withLove: 'With love' },
       music: { play: 'Music', pause: 'Pause', off: 'Unavailable', playLabel: 'Play background music', pauseLabel: 'Pause background music', blocked: 'Your browser blocked playback — tap again', failed: 'Music is unavailable right now' },
+      save: { button: 'Save Invitation', working: 'Preparing image…', failed: 'Could not save the image — please try again', fileName: 'ahmed-asmaa-engagement-invitation.png' },
       switchTo: { label: 'العربية', href: './', lang: 'ar' },
     },
   },
