@@ -24,20 +24,22 @@ export const config = {
   // Couple photo. Put the file in public/images/ and update `src`.
   // `objectPosition` controls the crop focus ("x% y%"); adjust if faces get cut.
   photo: {
-    src: 'images/ahmed-asmaa.jpeg',
-    width: 960,
-    height: 1280,
-    objectPosition: '50% 34%',
+    src: 'images/ahmed-asmaa-portrait.jpg',
+    width: 1024,
+    height: 1536,
+    objectPosition: '50% 22%',
   },
 
   // Saved invitation card ("Save Invitation" button).
   // `art`: couple cut-out (transparent PNG) in public/images/, standing in the
-  // card's bottom-right corner; `artWidth` = its width in px on the 1080px card.
+  // card's bottom-right corner; `artWidth` = its width in px on the 1080px card,
+  // `artLift` = how far (px) it sits above the card's bottom edge.
   // `background`: the full illustration — its paper colour and flowers decorate
   // the card. Set either to '' to leave it out.
   card: {
     art: 'images/couple-cutout.png',
     artWidth: 470,
+    artLift: 85,
     background: 'images/couple-illustration.jpg',
   },
 
@@ -62,7 +64,7 @@ export const config = {
         description: 'بكل الحب، ندعوكم لحفلة خطوبة أحمد وأسماء — الجمعة ٦ نوفمبر ٢٠٢٦',
       },
       names: { first: 'أحمد', joiner: 'و', second: 'أسماء', together: 'أحمد وأسماء' },
-      photoAlt: 'أحمد وأسماء على كورنيش النيل',
+      photoAlt: 'أحمد وأسماء في حديقة وقت الغروب',
       cover: { eyebrow: 'بكل الحب ندعوكم لحفلة خطوبة', type: 'حفلة خطوبة', open: 'افتح الدعوة' },
       story: {
         eyebrow: 'بداية حكاية جديدة',
@@ -92,7 +94,7 @@ export const config = {
         description: 'With love, you are invited to the engagement of Ahmed & Asmaa — Friday, November 6, 2026',
       },
       names: { first: 'Ahmed', joiner: '&', second: 'Asmaa', together: 'Ahmed & Asmaa' },
-      photoAlt: 'Ahmed and Asmaa by the Nile at night',
+      photoAlt: 'Ahmed and Asmaa in a garden at golden hour',
       cover: { eyebrow: 'You’re invited to the engagement of', type: 'Engagement Celebration', open: 'Open Invitation' },
       story: {
         eyebrow: 'A New Chapter Begins',

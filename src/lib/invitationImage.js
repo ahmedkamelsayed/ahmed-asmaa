@@ -257,11 +257,22 @@ function paintedPatch(ctx, art, sx, sy, x, y, w, h, anchor) {
   ctx.drawImage(off, x, y);
 }
 
-/** Couple cut-out standing in the bottom-right corner, running off the bottom edge. */
+/** Couple cut-out in the bottom-right corner, its bottom edge faded into the paper. */
 function drawCouple(ctx, cutout) {
   const w = config.card.artWidth || 470;
   const h = Math.round((cutout.naturalHeight / cutout.naturalWidth) * w);
-  ctx.drawImage(cutout, W - 34 - w, H - h, w, h);
+  const off = document.createElement('canvas');
+  off.width = w;
+  off.height = h;
+  const o = off.getContext('2d');
+  o.drawImage(cutout, 0, 0, w, h);
+  o.globalCompositeOperation = 'destination-in';
+  const fade = o.createLinearGradient(0, h * 0.72, 0, h);
+  fade.addColorStop(0, 'rgba(0,0,0,1)');
+  fade.addColorStop(1, 'rgba(0,0,0,0)');
+  o.fillStyle = fade;
+  o.fillRect(0, 0, w, h);
+  ctx.drawImage(off, W - 40 - w, H - h - (config.card.artLift ?? 150));
 }
 
 /** Arched frame; painted flowers from `bg`, couple cut-out bottom-right (both optional). */
