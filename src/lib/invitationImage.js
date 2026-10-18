@@ -78,6 +78,19 @@ function wrapLines(ctx, text, maxWidth) {
   return lines;
 }
 
+/** Wraps `text` into the fewest lines that fit `maxWidth`, with lines of similar length. */
+function balancedLines(ctx, text, maxWidth) {
+  const count = wrapLines(ctx, text, maxWidth).length;
+  let lo = maxWidth * 0.3;
+  let hi = maxWidth;
+  for (let i = 0; i < 20; i++) {
+    const mid = (lo + hi) / 2;
+    if (wrapLines(ctx, text, mid).length <= count) hi = mid;
+    else lo = mid;
+  }
+  return wrapLines(ctx, text, hi);
+}
+
 /** Thin gold rule with a small diamond and scroll dots in the middle. */
 function ornament(ctx, y, half, c) {
   const cx = W / 2;
@@ -257,22 +270,73 @@ function paintedPatch(ctx, art, sx, sy, x, y, w, h, anchor) {
   ctx.drawImage(off, x, y);
 }
 
-/** Couple cut-out in the bottom-right corner, its bottom edge faded into the paper. */
+/**
+ * Couple cut-out on the right, its bottom edge faded into the paper.
+ * Returns `leftEdge(y0, y1)`: the leftmost x the couple occupies between two
+ * card y positions, so text can wrap around their silhouette.
+ */
 function drawCouple(ctx, cutout) {
   const w = config.card.artWidth || 470;
   const h = Math.round((cutout.naturalHeight / cutout.naturalWidth) * w);
+  const x0 = W - 30 - w;
+  const y0 = config.card.artTop ?? 1100;
   const off = document.createElement('canvas');
   off.width = w;
   off.height = h;
   const o = off.getContext('2d');
   o.drawImage(cutout, 0, 0, w, h);
+  const alpha = o.getImageData(0, 0, w, h).data;
   o.globalCompositeOperation = 'destination-in';
   const fade = o.createLinearGradient(0, h * 0.72, 0, h);
   fade.addColorStop(0, 'rgba(0,0,0,1)');
   fade.addColorStop(1, 'rgba(0,0,0,0)');
   o.fillStyle = fade;
   o.fillRect(0, 0, w, h);
-  ctx.drawImage(off, W - 40 - w, H - h - (config.card.artLift ?? 150));
+  ctx.drawImage(off, x0, y0);
+
+  // Leftmost opaque column per row of the cut-out.
+  const rowLeft = new Array(h).fill(w);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (alpha[(y * w + x) * 4 + 3] > 40) {
+        rowLeft[y] = x;
+        break;
+      }
+    }
+  }
+  return (ya, yb) => {
+    let min = w;
+    for (let y = Math.max(0, Math.floor(ya - y0)); y <= Math.min(h - 1, Math.ceil(yb - y0)); y++) {
+      min = Math.min(min, rowLeft[y]);
+    }
+    return x0 + min;
+  };
+}
+
+/**
+ * Lays `text` out line by line between `left` and the couple's silhouette,
+ * each line centred in the room it has. Returns the y after the last line.
+ */
+function wrapAroundCouple(ctx, text, y, lh, left, edgeAt, gap, maxRight) {
+  const words = text.split(/\s+/);
+  let line = '';
+  const flush = (content) => {
+    const right = Math.min(maxRight, edgeAt(y - lh * 0.8, y + lh * 0.25) - gap);
+    ctx.fillText(content, (left + right) / 2, y);
+    y += lh;
+  };
+  for (const word of words) {
+    const right = Math.min(maxRight, edgeAt(y - lh * 0.8, y + lh * 0.25) - gap);
+    const next = line ? `${line} ${word}` : word;
+    if (line && ctx.measureText(next).width > right - left) {
+      flush(line);
+      line = word;
+    } else {
+      line = next;
+    }
+  }
+  if (line) flush(line);
+  return y;
 }
 
 /** Arched frame; painted flowers from `bg`, couple cut-out bottom-right (both optional). */
@@ -342,7 +406,7 @@ function drawFramedCard(ctx, lang, t, f, c, floral, bg, cutout) {
     if (!cutout) floralCluster(ctx, floral, W - 20, H - 40, true, false, 360);
     ctx.restore();
   }
-  if (cutout) drawCouple(ctx, cutout);
+  const edgeAt = cutout ? drawCouple(ctx, cutout) : null;
 
   const maxText = 800;
 
@@ -378,6 +442,24 @@ function drawFramedCard(ctx, lang, t, f, c, floral, bg, cutout) {
 
   ornament(ctx, 1070, 110, c);
 
+  if (edgeAt) {
+    // Message + closing line wrap around the couple's silhouette, sharing their space.
+    const left = 115;
+    const maxRight = W - 115;
+    ctx.fillStyle = c.inkSoft;
+    ctx.font = f.body(lang === 'ar' ? 42 : 38);
+    const y = wrapAroundCouple(ctx, t.story.message, 1160, lang === 'ar' ? 64 : 52, left, edgeAt, 28, maxRight);
+    // Closing line: one fixed column (the narrowest room over its whole height).
+    ctx.fillStyle = c.roseDeep;
+    ctx.font = f.names(lang === 'ar' ? 52 : 50);
+    const top = y + 45;
+    const right = Math.min(maxRight, edgeAt(top - 60, top + 160) - 28);
+    const clh = lang === 'ar' ? 72 : 62;
+    balancedLines(ctx, t.closing.line, right - left).forEach((line, i) =>
+      ctx.fillText(line, (left + right) / 2, top + i * clh));
+    return;
+  }
+
   // Invitation message.
   ctx.fillStyle = c.inkSoft;
   ctx.font = f.body(lang === 'ar' ? 44 : 42);
@@ -386,7 +468,7 @@ function drawFramedCard(ctx, lang, t, f, c, floral, bg, cutout) {
   lines.forEach((line, i) => center(line, 1150 + i * lh));
   const textEnd = 1150 + (lines.length - 1) * lh;
 
-  if (!cutout) {
+  {
     // Closing line in script.
     ctx.fillStyle = c.roseDeep;
     fitFont(ctx, f.names, lang === 'ar' ? 64 : 72, t.closing.line, 680);

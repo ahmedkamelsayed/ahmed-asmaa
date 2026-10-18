@@ -33,13 +33,13 @@ export const config = {
   // Saved invitation card ("Save Invitation" button).
   // `art`: couple cut-out (transparent PNG) in public/images/, standing in the
   // card's bottom-right corner; `artWidth` = its width in px on the 1080px card,
-  // `artLift` = how far (px) it sits above the card's bottom edge.
+  // `artTop` = where its top edge sits (px from the card's top, card is 1920 tall).
   // `background`: the full illustration — its paper colour and flowers decorate
   // the card. Set either to '' to leave it out.
   card: {
     art: 'images/couple-cutout.png',
-    artWidth: 470,
-    artLift: 85,
+    artWidth: 580,
+    artTop: 1100,
     background: 'images/couple-illustration.jpg',
   },
 
