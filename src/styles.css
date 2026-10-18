@@ -44,13 +44,13 @@
   --title-weight: 700;
 }
 
-/* English: Great Vibes script for names, Cormorant Garamond serif text */
+/* English: Parisienne script for names, Cormorant Garamond serif text */
 :root[lang='en'] {
   --font-body: 'Cormorant Garamond', Georgia, serif;
   --font-title: 'Cormorant Garamond', Georgia, serif;
   --font-label: 'Cormorant Garamond', Georgia, serif;
-  --font-names: 'Great Vibes', 'Snell Roundhand', cursive;
-  --font-script: 'Great Vibes', 'Snell Roundhand', cursive;
+  --font-names: 'Parisienne', 'Snell Roundhand', cursive;
+  --font-script: 'Parisienne', 'Snell Roundhand', cursive;
   --font-num: 'Cormorant Garamond', Georgia, serif;
   --body-size: 1.25rem;
   --body-lh: 1.7;

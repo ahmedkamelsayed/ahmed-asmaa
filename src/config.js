@@ -30,6 +30,13 @@ export const config = {
     objectPosition: '50% 34%',
   },
 
+  // Saved invitation card ("Save Invitation" button).
+  // `art`: optional couple illustration — a licensed PNG with transparent
+  // background in public/images/, e.g. 'images/couple.png'. Empty = no art.
+  card: {
+    art: '',
+  },
+
   // Optional background music. Leave `src` empty to hide the music button.
   // To add music: put a licensed file in public/audio/ and set e.g.
   // src: 'audio/our-song.mp3'

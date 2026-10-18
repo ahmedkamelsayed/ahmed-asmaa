@@ -1,5 +1,8 @@
-// Draws a 1080×1920 invitation card (text details + a simple couple avatar)
-// on a canvas. Runs entirely in the browser; no external services.
+// Draws a 1080×1920 invitation card on a canvas, in the style of a printed
+// invitation: arched ornamental frame, floral clusters, script names, details,
+// message, and an optional couple illustration (config.card.art).
+// Runs entirely in the browser; no external services.
+import { config } from '../config.js';
 import { dateFull, timeText } from './format.js';
 
 const W = 1080;
@@ -10,15 +13,15 @@ const FONTS = {
     names: (s) => `700 ${s}px "Aref Ruqaa", "Amiri", serif`,
     joiner: (s) => `400 ${s}px "Aref Ruqaa", "Amiri", serif`,
     label: (s) => `500 ${s}px "Reem Kufi", "Amiri", sans-serif`,
-    title: (s) => `700 ${s}px "Amiri", serif`,
+    title: (s) => `400 ${s}px "Amiri", serif`,
     body: (s) => `400 ${s}px "Amiri", serif`,
   },
   en: {
-    names: (s) => `400 ${s}px "Great Vibes", cursive`,
-    joiner: (s) => `400 ${s}px "Great Vibes", cursive`,
+    names: (s) => `400 ${s}px "Parisienne", cursive`,
+    joiner: (s) => `400 ${s}px "Parisienne", cursive`,
     label: (s) => `500 ${s}px "Cormorant Garamond", Georgia, serif`,
     title: (s) => `500 ${s}px "Cormorant Garamond", Georgia, serif`,
-    body: (s) => `italic 400 ${s}px "Cormorant Garamond", Georgia, serif`,
+    body: (s) => `500 ${s}px "Cormorant Garamond", Georgia, serif`,
   },
 };
 
@@ -31,13 +34,6 @@ function loadImage(src) {
   });
 }
 
-const svgImage = (markup, w, h) =>
-  loadImage(
-    `data:image/svg+xml;charset=utf-8,${encodeURIComponent(
-      markup.replace('<svg', `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"`),
-    )}`,
-  ).catch(() => null);
-
 /** The page's floral SVG as a standalone image, with CSS colour variables resolved. */
 function floralImage() {
   const svg = document.querySelector('.cover__floral');
@@ -45,50 +41,13 @@ function floralImage() {
   const css = getComputedStyle(document.documentElement);
   const markup = svg.outerHTML
     .replace(/var\((--[\w-]+)\)/g, (_, name) => css.getPropertyValue(name).trim() || '#c48b86')
-    .replace(/class="[^"]*"/, '');
-  return svgImage(markup, 440, 440);
+    .replace(/class="[^"]*"/, '')
+    .replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600"');
+  return loadImage(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(markup)}`).catch(() => null);
 }
 
-/** Simple illustrated couple: groom (beard, teal shirt) and bride (hijab). */
-function coupleAvatar(c) {
-  const markup = `<svg viewBox="0 0 400 332">
-    <circle cx="200" cy="178" r="150" fill="${c.blushLight}"/>
-    <circle cx="200" cy="178" r="150" fill="none" stroke="${c.gold}" stroke-width="2"/>
-    <defs><clipPath id="disc"><circle cx="200" cy="178" r="149"/></clipPath></defs>
-    <g clip-path="url(#disc)">
-      <!-- groom -->
-      <path d="M40 320C42 240 72 210 110 200L125 216L140 200C178 210 208 240 210 320Z" fill="#2f5d5c"/>
-      <path d="M110 200L125 224L140 200L133 195L125 208L117 195Z" fill="#244a49"/>
-      <g fill="#e8e1d6"><circle cx="125" cy="244" r="3"/><circle cx="125" cy="268" r="3"/></g>
-      <rect x="110" y="170" width="30" height="32" rx="8" fill="#a8704f"/>
-      <ellipse cx="80" cy="132" rx="7" ry="11" fill="#b9805e"/>
-      <ellipse cx="170" cy="132" rx="7" ry="11" fill="#b9805e"/>
-      <ellipse cx="125" cy="128" rx="45" ry="53" fill="#b9805e"/>
-      <path d="M80 120C78 80 104 64 127 64C154 64 173 82 171 118C163 102 150 94 127 94C107 94 91 102 80 120Z" fill="#2b211d"/>
-      <path d="M82 134C84 168 104 184 125 184C146 184 166 168 168 134C162 150 152 158 141 160C133 154 117 154 109 160C98 158 88 150 82 134Z" fill="#2b211d"/>
-      <path d="M111 161Q125 175 139 161Z" fill="#fff"/>
-      <g fill="none" stroke="#2b211d" stroke-width="3.2" stroke-linecap="round">
-        <path d="M101 126Q108 119 115 126"/><path d="M135 126Q142 119 149 126"/>
-        <path d="M99 111L114 109"/><path d="M136 109L151 111"/>
-      </g>
-      <!-- bride -->
-      <path d="M248 320L275 262L302 320Z" fill="#f6f1e8"/>
-      <path d="M275 58C224 58 203 100 206 146C207 178 214 196 222 210C200 222 188 254 186 320L248 320L275 262L302 320L364 320C362 254 350 222 328 210C336 196 343 178 344 146C347 100 326 58 275 58Z" fill="#b8abaa"/>
-      <path d="M236 214C254 238 296 238 314 214" fill="none" stroke="#9d8f8e" stroke-width="3" stroke-linecap="round"/>
-      <ellipse cx="275" cy="140" rx="40" ry="49" fill="#9d8f8e"/>
-      <ellipse cx="275" cy="142" rx="35" ry="44" fill="#e3b998"/>
-      <g fill="${c.blush}" opacity="0.8"><circle cx="254" cy="154" r="7"/><circle cx="296" cy="154" r="7"/></g>
-      <g fill="none" stroke="#3b2a24" stroke-width="2.8" stroke-linecap="round">
-        <path d="M256 138Q263 131 270 138"/><path d="M280 138Q287 131 294 138"/>
-      </g>
-      <path d="M265 158Q275 167 285 158" fill="none" stroke="${c.roseDeep}" stroke-width="2.8" stroke-linecap="round"/>
-    </g>
-  </svg>`;
-  return svgImage(markup, 800, 664);
-}
-
-function cssVar(name) {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+function cssVar(name, fallback) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
 }
 
 /** Sets font at `size`, shrinking until `text` fits `maxWidth`. */
@@ -119,49 +78,93 @@ function wrapLines(ctx, text, maxWidth) {
   return lines;
 }
 
-function divider(ctx, y, half, gold, blush) {
+/** Thin gold rule with a small diamond and scroll dots in the middle. */
+function ornament(ctx, y, half, c) {
   const cx = W / 2;
   ctx.save();
-  ctx.strokeStyle = gold;
-  ctx.lineWidth = 2;
+  ctx.strokeStyle = c.gold;
+  ctx.fillStyle = c.gold;
+  ctx.lineWidth = 1.6;
   ctx.beginPath();
   ctx.moveTo(cx - half, y);
-  ctx.lineTo(cx - 34, y);
-  ctx.moveTo(cx + 34, y);
+  ctx.lineTo(cx - 30, y);
+  ctx.moveTo(cx + 30, y);
   ctx.lineTo(cx + half, y);
   ctx.stroke();
+  for (const dx of [-half - 8, half + 8, -42, 42]) {
+    ctx.beginPath();
+    ctx.arc(cx + dx, y, 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
   ctx.beginPath();
-  ctx.moveTo(cx, y - 14);
-  ctx.lineTo(cx + 14, y);
-  ctx.lineTo(cx, y + 14);
-  ctx.lineTo(cx - 14, y);
+  ctx.moveTo(cx, y - 12);
+  ctx.lineTo(cx + 12, y);
+  ctx.lineTo(cx, y + 12);
+  ctx.lineTo(cx - 12, y);
   ctx.closePath();
-  ctx.fillStyle = blush;
+  ctx.fillStyle = c.blushLight;
   ctx.fill();
   ctx.stroke();
   ctx.restore();
 }
 
+/** Arched frame (pointed arch on top) traced at inset `i`. */
+function archFrame(ctx, i, shoulder, peak) {
+  const l = i;
+  const r = W - i;
+  const b = H - i;
+  ctx.beginPath();
+  ctx.moveTo(l, b);
+  ctx.lineTo(l, shoulder);
+  ctx.bezierCurveTo(l, shoulder - 120, W / 2 - 160, peak + 40, W / 2, peak);
+  ctx.bezierCurveTo(W / 2 + 160, peak + 40, r, shoulder - 120, r, shoulder);
+  ctx.lineTo(r, b);
+  ctx.closePath();
+}
+
+/** A cluster of floral sprigs around a corner point. */
+function floralCluster(ctx, img, x, y, flipX, flipY, size, compact = false) {
+  if (!img) return;
+  const pieces = [
+    { r: 0, s: 1, dx: 0, dy: 0 },
+    { r: 0.55, s: 0.75, dx: 40, dy: 120 },
+    { r: -0.5, s: 0.7, dx: 140, dy: -10 },
+  ].filter((_, i) => !compact || i !== 1);
+  for (const p of pieces) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(flipX ? -1 : 1, flipY ? -1 : 1);
+    ctx.translate(p.dx, p.dy);
+    ctx.rotate(p.r);
+    const s = size * p.s;
+    ctx.drawImage(img, -s * 0.05, -s * 0.95, s, s);
+    ctx.restore();
+  }
+}
+
 /** Renders the invitation card and resolves with a PNG Blob. */
 export async function renderInvitationImage(lang, t) {
   const f = FONTS[lang];
-  const colors = {
-    ivory: cssVar('--ivory') || '#fbf7f1',
-    blush: cssVar('--blush') || '#ebc9c3',
-    blushLight: cssVar('--blush-light') || '#f6e3de',
-    rose: cssVar('--rose') || '#c48b86',
-    roseDeep: cssVar('--rose-deep') || '#9a5c58',
-    gold: cssVar('--gold') || '#b39062',
-    goldDeep: cssVar('--gold-deep') || '#85653c',
-    ink: cssVar('--ink') || '#3b2a24',
-    inkSoft: cssVar('--ink-soft') || '#66524a',
+  const c = {
+    paper: '#f7f0e6',
+    paperLight: '#fbf7f0',
+    blush: cssVar('--blush', '#ebc9c3'),
+    blushLight: cssVar('--blush-light', '#f6e3de'),
+    rose: cssVar('--rose', '#c48b86'),
+    roseDeep: cssVar('--rose-deep', '#9a5c58'),
+    gold: cssVar('--gold', '#b39062'),
+    goldDeep: cssVar('--gold-deep', '#85653c'),
+    ink: '#2f221d',
+    inkSoft: '#5e4b43',
   };
 
-  // Make sure every font used on the card is loaded before drawing.
   await Promise.all(
     Object.values(f).map((fn) => document.fonts?.load(fn(40), 'أحمد Ahmed 0123').catch(() => null)),
   );
-  const [floral, avatar] = await Promise.all([floralImage(), coupleAvatar(colors)]);
+  const [floral, art] = await Promise.all([
+    floralImage(),
+    config.card.art ? loadImage(config.card.art).catch(() => null) : null,
+  ]);
 
   const canvas = document.createElement('canvas');
   canvas.width = W;
@@ -170,121 +173,135 @@ export async function renderInvitationImage(lang, t) {
   ctx.direction = lang === 'ar' ? 'rtl' : 'ltr';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
-
-  // Background with soft colour washes.
-  ctx.fillStyle = colors.ivory;
-  ctx.fillRect(0, 0, W, H);
-  const wash = (x, y, r, color) => {
-    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-    g.addColorStop(0, color);
-    g.addColorStop(1, 'rgba(251,247,241,0)');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, W, H);
-  };
-  wash(W * 0.85, 120, 700, 'rgba(235,201,195,0.45)');
-  wash(W * 0.1, H - 120, 700, 'rgba(239,227,207,0.75)');
-
-  // Card with double border.
-  const pad = 54;
-  ctx.fillStyle = 'rgba(255,253,249,0.75)';
-  ctx.fillRect(pad, pad, W - pad * 2, H - pad * 2);
-  ctx.strokeStyle = colors.gold;
-  ctx.lineWidth = 2;
-  ctx.strokeRect(pad, pad, W - pad * 2, H - pad * 2);
-  ctx.strokeStyle = colors.blush;
-  ctx.lineWidth = 1.5;
-  ctx.strokeRect(pad + 14, pad + 14, W - (pad + 14) * 2, H - (pad + 14) * 2);
-
-  // Florals in two corners (same artwork as the page).
-  const fs = 300;
-  if (floral) {
-    ctx.save();
-    ctx.translate(4, 4 + fs);
-    ctx.scale(1, -1);
-    ctx.drawImage(floral, 0, 0, fs, fs);
-    ctx.restore();
-    ctx.save();
-    ctx.translate(W - 4, H - 4 - fs);
-    ctx.scale(-1, 1);
-    ctx.drawImage(floral, 0, 0, fs, fs);
-    ctx.restore();
-  }
-
-  const maxText = W - 240;
-  const cornerText = W - 2 * (fs + 10);
   const center = (text, y) => ctx.fillText(text, W / 2, y);
 
+  // Paper background with soft warm vignette.
+  ctx.fillStyle = c.paper;
+  ctx.fillRect(0, 0, W, H);
+  const glow = ctx.createRadialGradient(W / 2, H * 0.42, 100, W / 2, H * 0.42, H * 0.75);
+  glow.addColorStop(0, c.paperLight);
+  glow.addColorStop(1, 'rgba(232,217,196,0.9)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, W, H);
+
+  // Outer double border.
+  ctx.strokeStyle = c.gold;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(36, 36, W - 72, H - 72);
+  ctx.lineWidth = 1;
+  ctx.strokeRect(48, 48, W - 96, H - 96);
+
+  // Arched inner frame: filled panel + double gold line + crest ornament.
+  const shoulder = 420;
+  const peak = 150;
+  archFrame(ctx, 92, shoulder, peak);
+  ctx.fillStyle = 'rgba(253,250,245,0.82)';
+  ctx.fill();
+  ctx.strokeStyle = c.gold;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  archFrame(ctx, 106, shoulder + 6, peak + 16);
+  ctx.strokeStyle = c.blush;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.save();
+  ctx.fillStyle = c.gold;
+  ctx.translate(W / 2, peak);
+  ctx.rotate(Math.PI / 4);
+  ctx.fillRect(-9, -9, 18, 18);
+  ctx.restore();
+
+  // Floral clusters: top-left and bottom-left (bottom-right too when no art).
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(36, 36, W - 72, H - 72);
+  ctx.clip();
+  floralCluster(ctx, floral, 36, 230, false, true, 280, true);
+  floralCluster(ctx, floral, 20, H - 40, false, false, 360);
+  if (!art) floralCluster(ctx, floral, W - 20, H - 40, true, false, 360);
+  ctx.restore();
+
+  const maxText = 760;
+
   // Eyebrow.
-  ctx.fillStyle = colors.goldDeep;
+  ctx.fillStyle = c.goldDeep;
   const eyebrow = lang === 'en' ? t.cover.eyebrow.toUpperCase() : t.cover.eyebrow;
-  if (lang === 'en' && 'letterSpacing' in ctx) ctx.letterSpacing = '5px';
-  fitFont(ctx, f.label, lang === 'en' ? 30 : 40, eyebrow, cornerText);
-  center(eyebrow, 300);
+  if (lang === 'en' && 'letterSpacing' in ctx) ctx.letterSpacing = '4px';
+  fitFont(ctx, f.label, lang === 'en' ? 28 : 38, eyebrow, 600);
+  center(eyebrow, 370);
   if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+  ornament(ctx, 420, 120, c);
 
-  // Names, stacked like the printed cover.
-  ctx.fillStyle = colors.ink;
-  const nameSize = lang === 'ar' ? 150 : 170;
-  fitFont(ctx, f.names, nameSize, t.names.first, maxText);
-  center(t.names.first, 480);
-  ctx.fillStyle = colors.rose;
-  ctx.font = f.joiner(lang === 'ar' ? 100 : 110);
-  center(t.names.joiner, 585);
-  ctx.fillStyle = colors.ink;
-  fitFont(ctx, f.names, nameSize, t.names.second, maxText);
-  center(t.names.second, 725);
+  // Names on one line: first · joiner · second, in reading order.
+  const nameSize = lang === 'ar' ? 130 : 128;
+  const parts = [
+    { text: t.names.first, font: f.names(nameSize), color: c.ink },
+    { text: t.names.joiner, font: f.joiner(Math.round(nameSize * 0.8)), color: c.rose },
+    { text: t.names.second, font: f.names(nameSize), color: c.ink },
+  ];
+  const gap = lang === 'ar' ? 30 : 26;
+  parts.forEach((p) => {
+    ctx.font = p.font;
+    p.w = ctx.measureText(p.text).width;
+  });
+  const total = parts.reduce((s, p) => s + p.w, 0) + gap * 2;
+  const k = Math.min(1, 740 / total);
+  const namesY = 590;
+  ctx.save();
+  ctx.translate(W / 2, namesY);
+  ctx.scale(k, k);
+  let x = -total / 2;
+  for (const p of lang === 'ar' ? [...parts].reverse() : parts) {
+    ctx.font = p.font;
+    ctx.fillStyle = p.color;
+    ctx.fillText(p.text, x + p.w / 2, 0);
+    x += p.w + gap;
+  }
+  ctx.restore();
 
-  // Event type + divider.
-  ctx.fillStyle = colors.roseDeep;
-  fitFont(ctx, f.label, lang === 'ar' ? 50 : 46, t.cover.type, maxText);
-  center(t.cover.type, 820);
-  divider(ctx, 875, 220, colors.gold, colors.blushLight);
+  // Event type.
+  ctx.fillStyle = c.roseDeep;
+  fitFont(ctx, f.label, lang === 'ar' ? 46 : 40, t.cover.type, maxText);
+  center(t.cover.type, 680);
 
-  // Avatar sits at the bottom; the text block is centred in the space above it.
-  const aw = 380;
-  const ah = Math.round((aw * 332) / 400);
-  const ay = H - pad - 22 - ah;
+  // Details.
+  ctx.fillStyle = c.ink;
+  fitFont(ctx, f.title, lang === 'ar' ? 52 : 52, dateFull(lang), maxText);
+  center(dateFull(lang), 790);
+  ctx.fillStyle = c.roseDeep;
+  fitFont(ctx, f.title, lang === 'ar' ? 48 : 48, timeText(lang), maxText);
+  center(timeText(lang), 862);
+  ctx.fillStyle = c.ink;
+  fitFont(ctx, f.title, lang === 'ar' ? 50 : 48, t.venue.name, maxText);
+  center(t.venue.name, 945);
+  ctx.fillStyle = c.inkSoft;
+  fitFont(ctx, f.body, lang === 'ar' ? 36 : 36, t.venue.location, maxText);
+  center(t.venue.location, 1000);
 
-  ctx.font = f.body(lang === 'ar' ? 40 : 40);
-  const lines = wrapLines(ctx, t.story.message, 800).slice(0, 4);
-  const lh = lang === 'ar' ? 66 : 54;
-  const gaps = [95, 70, 84, 56]; // message→date, date→time, time→venue, venue→location
-  const blockH = (lines.length - 1) * lh + gaps.reduce((a, b) => a + b, 0);
-  const top = 955;
-  const room = ay - 70 - top;
-  let y = top + Math.max(0, (room - blockH) / 2);
+  ornament(ctx, 1065, 110, c);
 
   // Invitation message.
-  ctx.fillStyle = colors.inkSoft;
-  lines.forEach((line, i) => center(line, y + i * lh));
-  y += (lines.length - 1) * lh + gaps[0];
+  ctx.fillStyle = c.inkSoft;
+  ctx.font = f.body(lang === 'ar' ? 38 : 38);
+  const lines = wrapLines(ctx, t.story.message, art ? 700 : 740).slice(0, 5);
+  const lh = lang === 'ar' ? 62 : 52;
+  lines.forEach((line, i) => center(line, 1140 + i * lh));
+  const textEnd = 1140 + (lines.length - 1) * lh;
 
-  // Date, time, venue.
-  ctx.fillStyle = colors.ink;
-  fitFont(ctx, f.title, lang === 'ar' ? 56 : 58, dateFull(lang), maxText);
-  center(dateFull(lang), y);
-  y += gaps[1];
-  ctx.fillStyle = colors.roseDeep;
-  fitFont(ctx, f.title, lang === 'ar' ? 50 : 52, timeText(lang), maxText);
-  center(timeText(lang), y);
-  y += gaps[2];
-  ctx.fillStyle = colors.ink;
-  fitFont(ctx, f.title, lang === 'ar' ? 58 : 56, t.venue.name, maxText);
-  center(t.venue.name, y);
-  y += gaps[3];
-  ctx.fillStyle = colors.inkSoft;
-  fitFont(ctx, f.body, 38, t.venue.location, maxText);
-  center(t.venue.location, y);
-
-  // Couple avatar; groom on the side read first.
-  if (avatar) {
-    ctx.save();
-    if (lang === 'ar') {
-      ctx.translate(W, 0);
-      ctx.scale(-1, 1);
-    }
-    ctx.drawImage(avatar, (W - aw) / 2, ay, aw, ah);
-    ctx.restore();
+  if (art) {
+    // Couple illustration anchored bottom-right, like a printed card.
+    const maxH = H - 70 - (textEnd + 40);
+    const ah = Math.min(maxH, 680);
+    const aw = (art.naturalWidth / art.naturalHeight) * ah;
+    const ax = Math.min(W - 70 - aw, W - aw * 0.92);
+    ctx.drawImage(art, lang === 'ar' ? W - ax - aw : ax, H - 70 - ah, aw, ah);
+  } else {
+    // Closing line in script instead of art.
+    ctx.fillStyle = c.roseDeep;
+    ctx.font = f.names(lang === 'ar' ? 64 : 72);
+    fitFont(ctx, f.names, lang === 'ar' ? 64 : 72, t.closing.line, 680);
+    center(t.closing.line, textEnd + 170);
+    ornament(ctx, textEnd + 250, 90, c);
   }
 
   return new Promise((resolve, reject) =>

@@ -12,14 +12,14 @@ const dist = path.join(root, 'dist');
 const outDir = path.join(root, 'single-file');
 const PAGES = [
   { src: 'index.html', out: 'ahmed-asmaa-invitation-arabic.html', fonts: /-(arabic)-\d/ , families: /Amiri|Aref Ruqaa|Reem Kufi/ },
-  { src: 'en.html', out: 'ahmed-asmaa-invitation-english.html', fonts: /-(latin)-\d/, families: /Cormorant Garamond|Great Vibes|Reem Kufi/ },
+  { src: 'en.html', out: 'ahmed-asmaa-invitation-english.html', fonts: /-(latin)-\d/, families: /Cormorant Garamond|Parisienne|Reem Kufi/ },
 ];
 
 const MIME = { '.woff2': 'font/woff2', '.jpeg': 'image/jpeg', '.jpg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.mp3': 'audio/mpeg', '.m4a': 'audio/mp4', '.ogg': 'audio/ogg', '.wav': 'audio/wav' };
 const dataUri = async (file) =>
   `data:${MIME[path.extname(file).toLowerCase()]};base64,${(await readFile(file)).toString('base64')}`;
 
-const media = [config.photo.src, config.music.src].filter((p) => p && existsSync(path.join(dist, p)));
+const media = [config.photo.src, config.music.src, config.card.art].filter((p) => p && existsSync(path.join(dist, p)));
 const inlineMedia = async (text) => {
   for (const p of media) text = text.replaceAll(p, await dataUri(path.join(dist, p)));
   return text;
