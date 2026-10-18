@@ -1,6 +1,5 @@
-// Draws a 1080×1920 invitation card (photo + main details) on a canvas.
-// Runs entirely in the browser; no external services.
-import { config } from '../config.js';
+// Draws a 1080×1920 invitation card (text details + a simple couple avatar)
+// on a canvas. Runs entirely in the browser; no external services.
 import { dateFull, timeText } from './format.js';
 
 const W = 1080;
@@ -13,15 +12,13 @@ const FONTS = {
     label: (s) => `500 ${s}px "Reem Kufi", "Amiri", sans-serif`,
     title: (s) => `700 ${s}px "Amiri", serif`,
     body: (s) => `400 ${s}px "Amiri", serif`,
-    accent: (s) => `400 ${s}px "Aref Ruqaa", "Amiri", serif`,
   },
   en: {
-    names: (s) => `300 ${s}px "Cormorant Garamond", Georgia, serif`,
-    joiner: (s) => `400 ${s}px "Pinyon Script", cursive`,
+    names: (s) => `400 ${s}px "Great Vibes", cursive`,
+    joiner: (s) => `400 ${s}px "Great Vibes", cursive`,
     label: (s) => `500 ${s}px "Cormorant Garamond", Georgia, serif`,
     title: (s) => `500 ${s}px "Cormorant Garamond", Georgia, serif`,
     body: (s) => `italic 400 ${s}px "Cormorant Garamond", Georgia, serif`,
-    accent: (s) => `400 ${s}px "Pinyon Script", cursive`,
   },
 };
 
@@ -29,21 +26,65 @@ function loadImage(src) {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error(`Could not load ${src.slice(0, 60)}`));
+    img.onerror = () => reject(new Error('Could not load image'));
     img.src = src;
   });
 }
 
+const svgImage = (markup, w, h) =>
+  loadImage(
+    `data:image/svg+xml;charset=utf-8,${encodeURIComponent(
+      markup.replace('<svg', `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"`),
+    )}`,
+  ).catch(() => null);
+
 /** The page's floral SVG as a standalone image, with CSS colour variables resolved. */
-async function floralImage() {
+function floralImage() {
   const svg = document.querySelector('.cover__floral');
-  if (!svg) return null;
+  if (!svg) return Promise.resolve(null);
   const css = getComputedStyle(document.documentElement);
   const markup = svg.outerHTML
     .replace(/var\((--[\w-]+)\)/g, (_, name) => css.getPropertyValue(name).trim() || '#c48b86')
-    .replace(/class="[^"]*"/, '')
-    .replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg" width="440" height="440"');
-  return loadImage(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(markup)}`).catch(() => null);
+    .replace(/class="[^"]*"/, '');
+  return svgImage(markup, 440, 440);
+}
+
+/** Simple illustrated couple: groom (beard, teal shirt) and bride (hijab). */
+function coupleAvatar(c) {
+  const markup = `<svg viewBox="0 0 400 332">
+    <circle cx="200" cy="178" r="150" fill="${c.blushLight}"/>
+    <circle cx="200" cy="178" r="150" fill="none" stroke="${c.gold}" stroke-width="2"/>
+    <defs><clipPath id="disc"><circle cx="200" cy="178" r="149"/></clipPath></defs>
+    <g clip-path="url(#disc)">
+      <!-- groom -->
+      <path d="M40 320C42 240 72 210 110 200L125 216L140 200C178 210 208 240 210 320Z" fill="#2f5d5c"/>
+      <path d="M110 200L125 224L140 200L133 195L125 208L117 195Z" fill="#244a49"/>
+      <g fill="#e8e1d6"><circle cx="125" cy="244" r="3"/><circle cx="125" cy="268" r="3"/></g>
+      <rect x="110" y="170" width="30" height="32" rx="8" fill="#a8704f"/>
+      <ellipse cx="80" cy="132" rx="7" ry="11" fill="#b9805e"/>
+      <ellipse cx="170" cy="132" rx="7" ry="11" fill="#b9805e"/>
+      <ellipse cx="125" cy="128" rx="45" ry="53" fill="#b9805e"/>
+      <path d="M80 120C78 80 104 64 127 64C154 64 173 82 171 118C163 102 150 94 127 94C107 94 91 102 80 120Z" fill="#2b211d"/>
+      <path d="M82 134C84 168 104 184 125 184C146 184 166 168 168 134C162 150 152 158 141 160C133 154 117 154 109 160C98 158 88 150 82 134Z" fill="#2b211d"/>
+      <path d="M111 161Q125 175 139 161Z" fill="#fff"/>
+      <g fill="none" stroke="#2b211d" stroke-width="3.2" stroke-linecap="round">
+        <path d="M101 126Q108 119 115 126"/><path d="M135 126Q142 119 149 126"/>
+        <path d="M99 111L114 109"/><path d="M136 109L151 111"/>
+      </g>
+      <!-- bride -->
+      <path d="M248 320L275 262L302 320Z" fill="#f6f1e8"/>
+      <path d="M275 58C224 58 203 100 206 146C207 178 214 196 222 210C200 222 188 254 186 320L248 320L275 262L302 320L364 320C362 254 350 222 328 210C336 196 343 178 344 146C347 100 326 58 275 58Z" fill="#b8abaa"/>
+      <path d="M236 214C254 238 296 238 314 214" fill="none" stroke="#9d8f8e" stroke-width="3" stroke-linecap="round"/>
+      <ellipse cx="275" cy="140" rx="40" ry="49" fill="#9d8f8e"/>
+      <ellipse cx="275" cy="142" rx="35" ry="44" fill="#e3b998"/>
+      <g fill="${c.blush}" opacity="0.8"><circle cx="254" cy="154" r="7"/><circle cx="296" cy="154" r="7"/></g>
+      <g fill="none" stroke="#3b2a24" stroke-width="2.8" stroke-linecap="round">
+        <path d="M256 138Q263 131 270 138"/><path d="M280 138Q287 131 294 138"/>
+      </g>
+      <path d="M265 158Q275 167 285 158" fill="none" stroke="${c.roseDeep}" stroke-width="2.8" stroke-linecap="round"/>
+    </g>
+  </svg>`;
+  return svgImage(markup, 800, 664);
 }
 
 function cssVar(name) {
@@ -61,42 +102,39 @@ function fitFont(ctx, fontFn, size, text, maxWidth) {
   return s;
 }
 
-function archPath(ctx, x, y, w, h, bottomRadius) {
-  const r = w / 2;
-  ctx.beginPath();
-  ctx.moveTo(x, y + r);
-  ctx.arc(x + r, y + r, r, Math.PI, 0);
-  ctx.lineTo(x + w, y + h - bottomRadius);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - bottomRadius, y + h);
-  ctx.lineTo(x + bottomRadius, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - bottomRadius);
-  ctx.closePath();
+/** Splits `text` into lines no wider than `maxWidth` with the current font. */
+function wrapLines(ctx, text, maxWidth) {
+  const lines = [];
+  let line = '';
+  for (const word of text.split(/\s+/)) {
+    const next = line ? `${line} ${word}` : word;
+    if (line && ctx.measureText(next).width > maxWidth) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = next;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
 }
 
-function drawCover(ctx, img, x, y, w, h, objectPosition) {
-  const [px, py] = (objectPosition || '50% 50%').split(/\s+/).map((v) => parseFloat(v) / 100);
-  const scale = Math.max(w / img.naturalWidth, h / img.naturalHeight);
-  const sw = w / scale;
-  const sh = h / scale;
-  ctx.drawImage(img, (img.naturalWidth - sw) * px, (img.naturalHeight - sh) * py, sw, sh, x, y, w, h);
-}
-
-function divider(ctx, y, gold, blush) {
+function divider(ctx, y, half, gold, blush) {
   const cx = W / 2;
   ctx.save();
   ctx.strokeStyle = gold;
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(cx - 200, y);
+  ctx.moveTo(cx - half, y);
   ctx.lineTo(cx - 34, y);
   ctx.moveTo(cx + 34, y);
-  ctx.lineTo(cx + 200, y);
+  ctx.lineTo(cx + half, y);
   ctx.stroke();
   ctx.beginPath();
-  ctx.moveTo(cx, y - 15);
-  ctx.lineTo(cx + 15, y);
-  ctx.lineTo(cx, y + 15);
-  ctx.lineTo(cx - 15, y);
+  ctx.moveTo(cx, y - 14);
+  ctx.lineTo(cx + 14, y);
+  ctx.lineTo(cx, y + 14);
+  ctx.lineTo(cx - 14, y);
   ctx.closePath();
   ctx.fillStyle = blush;
   ctx.fill();
@@ -109,12 +147,10 @@ export async function renderInvitationImage(lang, t) {
   const f = FONTS[lang];
   const colors = {
     ivory: cssVar('--ivory') || '#fbf7f1',
-    paper: cssVar('--paper') || '#fffdf9',
     blush: cssVar('--blush') || '#ebc9c3',
     blushLight: cssVar('--blush-light') || '#f6e3de',
     rose: cssVar('--rose') || '#c48b86',
     roseDeep: cssVar('--rose-deep') || '#9a5c58',
-    champagne: cssVar('--champagne') || '#efe3cf',
     gold: cssVar('--gold') || '#b39062',
     goldDeep: cssVar('--gold-deep') || '#85653c',
     ink: cssVar('--ink') || '#3b2a24',
@@ -125,7 +161,7 @@ export async function renderInvitationImage(lang, t) {
   await Promise.all(
     Object.values(f).map((fn) => document.fonts?.load(fn(40), 'أحمد Ahmed 0123').catch(() => null)),
   );
-  const [photo, floral] = await Promise.all([loadImage(config.photo.src), floralImage()]);
+  const [floral, avatar] = await Promise.all([floralImage(), coupleAvatar(colors)]);
 
   const canvas = document.createElement('canvas');
   canvas.width = W;
@@ -160,7 +196,7 @@ export async function renderInvitationImage(lang, t) {
   ctx.strokeRect(pad + 14, pad + 14, W - (pad + 14) * 2, H - (pad + 14) * 2);
 
   // Florals in two corners (same artwork as the page).
-  const fs = 270;
+  const fs = 300;
   if (floral) {
     ctx.save();
     ctx.translate(4, 4 + fs);
@@ -174,99 +210,82 @@ export async function renderInvitationImage(lang, t) {
     ctx.restore();
   }
 
-  const maxText = W - 220;
-  // Lines near the floral corners stay narrower so they never overlap.
+  const maxText = W - 240;
   const cornerText = W - 2 * (fs + 10);
+  const center = (text, y) => ctx.fillText(text, W / 2, y);
 
   // Eyebrow.
   ctx.fillStyle = colors.goldDeep;
   const eyebrow = lang === 'en' ? t.cover.eyebrow.toUpperCase() : t.cover.eyebrow;
-  if (lang === 'en' && 'letterSpacing' in ctx) ctx.letterSpacing = '6px';
-  fitFont(ctx, f.label, lang === 'en' ? 30 : 38, eyebrow, cornerText);
-  ctx.fillText(eyebrow, W / 2, 205);
+  if (lang === 'en' && 'letterSpacing' in ctx) ctx.letterSpacing = '5px';
+  fitFont(ctx, f.label, lang === 'en' ? 30 : 40, eyebrow, cornerText);
+  center(eyebrow, 300);
   if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
 
-  // Arched photo with frame.
-  const pw = 560;
-  const ph = 700;
-  const px = (W - pw) / 2;
-  const py = 275;
-  ctx.save();
-  ctx.shadowColor = 'rgba(91,58,44,0.25)';
-  ctx.shadowBlur = 40;
-  ctx.shadowOffsetY = 18;
-  archPath(ctx, px - 14, py - 14, pw + 28, ph + 28, 26);
-  ctx.fillStyle = colors.paper;
-  ctx.fill();
-  ctx.restore();
-  ctx.save();
-  archPath(ctx, px, py, pw, ph, 14);
-  ctx.clip();
-  drawCover(ctx, photo, px, py, pw, ph, config.photo.objectPosition);
-  ctx.restore();
-  archPath(ctx, px - 28, py - 28, pw + 56, ph + 56, 32);
-  ctx.strokeStyle = colors.gold;
-  ctx.lineWidth = 2;
-  ctx.stroke();
+  // Names, stacked like the printed cover.
+  ctx.fillStyle = colors.ink;
+  const nameSize = lang === 'ar' ? 150 : 170;
+  fitFont(ctx, f.names, nameSize, t.names.first, maxText);
+  center(t.names.first, 480);
+  ctx.fillStyle = colors.rose;
+  ctx.font = f.joiner(lang === 'ar' ? 100 : 110);
+  center(t.names.joiner, 585);
+  ctx.fillStyle = colors.ink;
+  fitFont(ctx, f.names, nameSize, t.names.second, maxText);
+  center(t.names.second, 725);
 
-  // Names: first · joiner · second, laid out in reading order.
-  const nameSize = lang === 'ar' ? 118 : 112;
-  const parts = [
-    { text: t.names.first, font: f.names(nameSize), color: colors.ink },
-    { text: t.names.joiner, font: f.joiner(Math.round(nameSize * 0.75)), color: colors.rose },
-    { text: t.names.second, font: f.names(nameSize), color: colors.ink },
-  ];
-  const gap = 28;
-  parts.forEach((p) => {
-    ctx.font = p.font;
-    p.w = ctx.measureText(p.text).width;
-  });
-  const total = parts.reduce((s, p) => s + p.w, 0) + gap * 2;
-  const scale = Math.min(1, maxText / total);
-  const ordered = lang === 'ar' ? [...parts].reverse() : parts;
-  let x = W / 2 - (total * scale) / 2;
-  const namesY = 1170;
-  ctx.save();
-  ctx.translate(W / 2, namesY);
-  ctx.scale(scale, scale);
-  ctx.translate(-W / 2, -namesY);
-  x = W / 2 - total / 2;
-  ordered.forEach((p) => {
-    ctx.font = p.font;
-    ctx.fillStyle = p.color;
-    ctx.fillText(p.text, x + p.w / 2, namesY);
-    x += p.w + gap;
-  });
-  ctx.restore();
-
-  // Event type.
+  // Event type + divider.
   ctx.fillStyle = colors.roseDeep;
-  fitFont(ctx, f.label, lang === 'ar' ? 46 : 42, t.cover.type, maxText);
-  ctx.fillText(t.cover.type, W / 2, 1265);
+  fitFont(ctx, f.label, lang === 'ar' ? 50 : 46, t.cover.type, maxText);
+  center(t.cover.type, 820);
+  divider(ctx, 875, 220, colors.gold, colors.blushLight);
 
-  divider(ctx, 1325, colors.gold, colors.blushLight);
+  // Avatar sits at the bottom; the text block is centred in the space above it.
+  const aw = 380;
+  const ah = Math.round((aw * 332) / 400);
+  const ay = H - pad - 22 - ah;
+
+  ctx.font = f.body(lang === 'ar' ? 40 : 40);
+  const lines = wrapLines(ctx, t.story.message, 800).slice(0, 4);
+  const lh = lang === 'ar' ? 66 : 54;
+  const gaps = [95, 70, 84, 56]; // message→date, date→time, time→venue, venue→location
+  const blockH = (lines.length - 1) * lh + gaps.reduce((a, b) => a + b, 0);
+  const top = 955;
+  const room = ay - 70 - top;
+  let y = top + Math.max(0, (room - blockH) / 2);
+
+  // Invitation message.
+  ctx.fillStyle = colors.inkSoft;
+  lines.forEach((line, i) => center(line, y + i * lh));
+  y += (lines.length - 1) * lh + gaps[0];
 
   // Date, time, venue.
   ctx.fillStyle = colors.ink;
-  fitFont(ctx, f.title, lang === 'ar' ? 58 : 60, dateFull(lang), maxText);
-  ctx.fillText(dateFull(lang), W / 2, 1430);
-
+  fitFont(ctx, f.title, lang === 'ar' ? 56 : 58, dateFull(lang), maxText);
+  center(dateFull(lang), y);
+  y += gaps[1];
   ctx.fillStyle = colors.roseDeep;
-  fitFont(ctx, f.title, lang === 'ar' ? 52 : 54, timeText(lang), maxText);
-  ctx.fillText(timeText(lang), W / 2, 1510);
-
+  fitFont(ctx, f.title, lang === 'ar' ? 50 : 52, timeText(lang), maxText);
+  center(timeText(lang), y);
+  y += gaps[2];
   ctx.fillStyle = colors.ink;
-  fitFont(ctx, f.title, lang === 'ar' ? 62 : 60, t.venue.name, maxText);
-  ctx.fillText(t.venue.name, W / 2, 1625);
-
+  fitFont(ctx, f.title, lang === 'ar' ? 58 : 56, t.venue.name, maxText);
+  center(t.venue.name, y);
+  y += gaps[3];
   ctx.fillStyle = colors.inkSoft;
-  fitFont(ctx, f.body, lang === 'ar' ? 40 : 40, t.venue.location, maxText);
-  ctx.fillText(t.venue.location, W / 2, 1690);
+  fitFont(ctx, f.body, 38, t.venue.location, maxText);
+  center(t.venue.location, y);
 
-  // Closing accent.
-  ctx.fillStyle = colors.roseDeep;
-  fitFont(ctx, f.accent, lang === 'ar' ? 50 : 56, t.closing.line, cornerText);
-  ctx.fillText(t.closing.line, W / 2, 1790);
+  // Couple avatar; groom on the side read first.
+  if (avatar) {
+    ctx.save();
+    if (lang === 'ar') {
+      ctx.translate(W, 0);
+      ctx.scale(-1, 1);
+    }
+    ctx.drawImage(avatar, (W - aw) / 2, ay, aw, ah);
+    ctx.restore();
+  }
 
   return new Promise((resolve, reject) =>
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/png'),

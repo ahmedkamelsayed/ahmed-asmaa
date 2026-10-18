@@ -12,7 +12,7 @@ const dist = path.join(root, 'dist');
 const outDir = path.join(root, 'single-file');
 const PAGES = [
   { src: 'index.html', out: 'ahmed-asmaa-invitation-arabic.html', fonts: /-(arabic)-\d/ , families: /Amiri|Aref Ruqaa|Reem Kufi/ },
-  { src: 'en.html', out: 'ahmed-asmaa-invitation-english.html', fonts: /-(latin)-\d/, families: /Cormorant Garamond|Pinyon Script|Reem Kufi/ },
+  { src: 'en.html', out: 'ahmed-asmaa-invitation-english.html', fonts: /-(latin)-\d/, families: /Cormorant Garamond|Great Vibes|Reem Kufi/ },
 ];
 
 const MIME = { '.woff2': 'font/woff2', '.jpeg': 'image/jpeg', '.jpg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.mp3': 'audio/mpeg', '.m4a': 'audio/mp4', '.ogg': 'audio/ogg', '.wav': 'audio/wav' };
