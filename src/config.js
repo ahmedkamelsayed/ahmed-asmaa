@@ -31,14 +31,14 @@ export const config = {
   },
 
   // Saved invitation card ("Save Invitation" button).
-  // `art`: optional couple illustration in public/images/, shown in the card's
-  // bottom-right corner. `artCrop` picks the part of the image to show, as
-  // fractions: x = [left, right], y = [top, bottom]. `artWidth` = width in px
-  // on the 1080px-wide card. Set art: '' for a text-only card.
+  // `art`: couple cut-out (transparent PNG) in public/images/, standing in the
+  // card's bottom-right corner; `artWidth` = its width in px on the 1080px card.
+  // `background`: the full illustration — its paper colour and flowers decorate
+  // the card. Set either to '' to leave it out.
   card: {
-    art: 'images/couple-illustration.jpg',
-    artCrop: { x: [0.03, 0.94], y: [0.09, 0.75] },
-    artWidth: 500,
+    art: 'images/couple-cutout.png',
+    artWidth: 470,
+    background: 'images/couple-illustration.jpg',
   },
 
   // Optional background music. Leave `src` empty to hide the music button.

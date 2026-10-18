@@ -161,9 +161,11 @@ export async function renderInvitationImage(lang, t) {
   await Promise.all(
     Object.values(f).map((fn) => document.fonts?.load(fn(40), 'أحمد Ahmed 0123').catch(() => null)),
   );
-  const [floral, art] = await Promise.all([
+  const optional = (src) => (src ? loadImage(src).catch(() => null) : null);
+  const [floral, bg, cutout] = await Promise.all([
     floralImage(),
-    config.card.art ? loadImage(config.card.art).catch(() => null) : null,
+    optional(config.card.background),
+    optional(config.card.art),
   ]);
 
   const canvas = document.createElement('canvas');
@@ -174,7 +176,7 @@ export async function renderInvitationImage(lang, t) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
 
-  drawFramedCard(ctx, lang, t, f, c, floral, art);
+  drawFramedCard(ctx, lang, t, f, c, floral, bg, cutout);
 
   return new Promise((resolve, reject) =>
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/png'),
@@ -255,52 +257,19 @@ function paintedPatch(ctx, art, sx, sy, x, y, w, h, anchor) {
   ctx.drawImage(off, x, y);
 }
 
-/**
- * Couple illustration in the bottom-right corner: the configured crop, with its
- * top and left edges feathered into the paper. Returns the drawn box.
- */
-function drawCornerArt(ctx, art) {
-  const { x: [x0, x1], y: [y0, y1] } = config.card.artCrop;
-  const sx = art.naturalWidth * x0;
-  const sy = art.naturalHeight * y0;
-  const sw = art.naturalWidth * (x1 - x0);
-  const sh = art.naturalHeight * (y1 - y0);
-  const w = config.card.artWidth || 500;
-  const h = Math.round((sh / sw) * w);
-
-  const off = document.createElement('canvas');
-  off.width = w;
-  off.height = h;
-  const o = off.getContext('2d');
-  o.drawImage(art, sx, sy, sw, sh, 0, 0, w, h);
-  o.globalCompositeOperation = 'destination-in';
-  const left = o.createLinearGradient(0, 0, w * 0.22, 0);
-  left.addColorStop(0, 'rgba(0,0,0,0)');
-  left.addColorStop(1, 'rgba(0,0,0,1)');
-  o.fillStyle = left;
-  o.fillRect(0, 0, w, h);
-  const top = o.createLinearGradient(0, 0, 0, h * 0.18);
-  top.addColorStop(0, 'rgba(0,0,0,0)');
-  top.addColorStop(1, 'rgba(0,0,0,1)');
-  o.fillStyle = top;
-  o.fillRect(0, 0, w, h);
-  const right = o.createLinearGradient(w, 0, w * 0.88, 0);
-  right.addColorStop(0, 'rgba(0,0,0,0)');
-  right.addColorStop(1, 'rgba(0,0,0,1)');
-  o.fillStyle = right;
-  o.fillRect(0, 0, w, h);
-
-  const x = W - 40 - w;
-  const y = H - 40 - h;
-  ctx.drawImage(off, x, y);
-  return { x, y, w, h };
+/** Couple cut-out standing in the bottom-right corner, running off the bottom edge. */
+function drawCouple(ctx, cutout) {
+  const w = config.card.artWidth || 470;
+  const h = Math.round((cutout.naturalHeight / cutout.naturalWidth) * w);
+  ctx.drawImage(cutout, W - 34 - w, H - h, w, h);
 }
 
-/** Arched ornamental frame with floral corners; couple art bottom-right if given. */
-function drawFramedCard(ctx, lang, t, f, c, floral, art) {
+/** Arched frame; painted flowers from `bg`, couple cut-out bottom-right (both optional). */
+function drawFramedCard(ctx, lang, t, f, c, floral, bg, cutout) {
   const center = (text, y) => ctx.fillText(text, W / 2, y);
+  const art = bg;
 
-  // Paper background: the illustration's own paper tone when there is art.
+  // Paper background: the illustration's own paper tone when there is one.
   const [pr, pg, pb] = art ? sampleColor(art, [0.42, 0.72], [0.01, 0.09]) : [247, 240, 230];
   ctx.fillStyle = `rgb(${pr},${pg},${pb})`;
   ctx.fillRect(0, 0, W, H);
@@ -351,9 +320,7 @@ function drawFramedCard(ctx, lang, t, f, c, floral, art) {
   ctx.fillRect(-9, -9, 18, 18);
   ctx.restore();
 
-  if (art) {
-    drawCornerArt(ctx, art);
-  } else {
+  if (!art) {
     // Drawn floral clusters when there is no illustration.
     ctx.save();
     ctx.beginPath();
@@ -361,9 +328,10 @@ function drawFramedCard(ctx, lang, t, f, c, floral, art) {
     ctx.clip();
     floralCluster(ctx, floral, 36, 190, false, true, 250, true);
     floralCluster(ctx, floral, 20, H - 40, false, false, 360);
-    floralCluster(ctx, floral, W - 20, H - 40, true, false, 360);
+    if (!cutout) floralCluster(ctx, floral, W - 20, H - 40, true, false, 360);
     ctx.restore();
   }
+  if (cutout) drawCouple(ctx, cutout);
 
   const maxText = 800;
 
@@ -407,7 +375,7 @@ function drawFramedCard(ctx, lang, t, f, c, floral, art) {
   lines.forEach((line, i) => center(line, 1150 + i * lh));
   const textEnd = 1150 + (lines.length - 1) * lh;
 
-  if (!art) {
+  if (!cutout) {
     // Closing line in script.
     ctx.fillStyle = c.roseDeep;
     fitFont(ctx, f.names, lang === 'ar' ? 64 : 72, t.closing.line, 680);
