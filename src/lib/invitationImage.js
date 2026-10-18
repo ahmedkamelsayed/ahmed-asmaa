@@ -93,7 +93,10 @@ function balancedLines(ctx, text, maxWidth) {
 
 /** Thin gold rule with a small diamond and scroll dots in the middle. */
 function ornament(ctx, y, half, c) {
-  const cx = W / 2;
+  ornamentAt(ctx, W / 2, y, half, c);
+}
+
+function ornamentAt(ctx, cx, y, half, c) {
   ctx.save();
   ctx.strokeStyle = c.gold;
   ctx.fillStyle = c.gold;
@@ -443,20 +446,37 @@ function drawFramedCard(ctx, lang, t, f, c, floral, bg, cutout) {
   ornament(ctx, 1070, 110, c);
 
   if (edgeAt) {
-    // Message + closing line wrap around the couple's silhouette, sharing their space.
-    const left = 115;
-    const maxRight = W - 115;
+    // Message + closing line in one column beside the couple: every line is
+    // centred on the same axis, lines balanced to similar lengths.
+    const artTop = config.card.artTop ?? 1100;
+    const left = 112;
+    const right = edgeAt(artTop + 40, artTop + 470) - 34;
+    const axis = (left + right) / 2;
+    const width = right - left;
+
+    ctx.font = f.body(lang === 'ar' ? 40 : 37);
+    const msg = balancedLines(ctx, t.story.message, width);
+    const mlh = lang === 'ar' ? 62 : 50;
+    ctx.font = f.names(lang === 'ar' ? 50 : 50);
+    const closing = balancedLines(ctx, t.closing.line, width);
+    const clh = lang === 'ar' ? 70 : 60;
+
+    // Vertically centre the whole column against the couple.
+    // Space from the last message baseline to the ornament, and on to the closing line.
+    const toOrnament = lang === 'ar' ? 50 : 36;
+    const toClosing = lang === 'ar' ? 66 : 52;
+    const blockH = (msg.length - 1) * mlh + toOrnament + toClosing + (closing.length - 1) * clh;
+    let y = Math.max(artTop + 50, artTop + 250 - blockH / 2);
+
     ctx.fillStyle = c.inkSoft;
-    ctx.font = f.body(lang === 'ar' ? 42 : 38);
-    const y = wrapAroundCouple(ctx, t.story.message, 1160, lang === 'ar' ? 64 : 52, left, edgeAt, 28, maxRight);
-    // Closing line: one fixed column (the narrowest room over its whole height).
+    ctx.font = f.body(lang === 'ar' ? 40 : 37);
+    msg.forEach((line, i) => ctx.fillText(line, axis, y + i * mlh));
+    y += (msg.length - 1) * mlh + toOrnament;
+    ornamentAt(ctx, axis, y, 60, c);
+    y += toClosing;
     ctx.fillStyle = c.roseDeep;
-    ctx.font = f.names(lang === 'ar' ? 52 : 50);
-    const top = y + 45;
-    const right = Math.min(maxRight, edgeAt(top - 60, top + 160) - 28);
-    const clh = lang === 'ar' ? 72 : 62;
-    balancedLines(ctx, t.closing.line, right - left).forEach((line, i) =>
-      ctx.fillText(line, (left + right) / 2, top + i * clh));
+    ctx.font = f.names(lang === 'ar' ? 50 : 50);
+    closing.forEach((line, i) => ctx.fillText(line, axis, y + i * clh));
     return;
   }
 

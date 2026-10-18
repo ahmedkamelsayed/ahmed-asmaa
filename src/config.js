@@ -38,7 +38,7 @@ export const config = {
   // the card. Set either to '' to leave it out.
   card: {
     art: 'images/couple-cutout.png',
-    artWidth: 580,
+    artWidth: 540,
     artTop: 1100,
     background: 'images/couple-illustration.jpg',
   },
