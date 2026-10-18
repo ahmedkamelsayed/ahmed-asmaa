@@ -208,6 +208,53 @@ function drawNames(ctx, lang, t, f, c, y, size, maxWidth) {
   ctx.restore();
 }
 
+/** Average colour of a region of the illustration (fractions), as an [r,g,b] array. */
+function sampleColor(art, [x0, x1], [y0, y1]) {
+  const off = document.createElement('canvas');
+  off.width = 1;
+  off.height = 1;
+  const o = off.getContext('2d');
+  o.imageSmoothingQuality = 'high';
+  const sw = art.naturalWidth * (x1 - x0);
+  const sh = art.naturalHeight * (y1 - y0);
+  o.drawImage(art, art.naturalWidth * x0, art.naturalHeight * y0, sw, sh, 0, 0, 1, 1);
+  const [r, g, b] = o.getImageData(0, 0, 1, 1).data;
+  return [r, g, b];
+}
+
+/**
+ * Draws a painted patch cut from the illustration (fractions `sx`/`sy`) into the
+ * box (x, y, w, h), fading out radially from the `anchor` corner ('tl'|'tr'|'bl'|'br').
+ * The patch is flipped to match the anchor, assuming the source sits top-left.
+ */
+function paintedPatch(ctx, art, sx, sy, x, y, w, h, anchor) {
+  const off = document.createElement('canvas');
+  off.width = w;
+  off.height = h;
+  const o = off.getContext('2d');
+  const flipX = anchor.includes('r');
+  const flipY = anchor.includes('b');
+  o.translate(flipX ? w : 0, flipY ? h : 0);
+  o.scale(flipX ? -1 : 1, flipY ? -1 : 1);
+  o.drawImage(
+    art,
+    art.naturalWidth * sx[0], art.naturalHeight * sy[0],
+    art.naturalWidth * (sx[1] - sx[0]), art.naturalHeight * (sy[1] - sy[0]),
+    0, 0, w, h,
+  );
+  o.setTransform(1, 0, 0, 1, 0, 0);
+  o.globalCompositeOperation = 'destination-in';
+  const cx = anchor.includes('r') ? w : 0;
+  const cy = anchor.includes('b') ? h : 0;
+  const r = Math.min(w, h); // fully transparent before the patch's inner edges
+  const g = o.createRadialGradient(cx, cy, r * 0.45, cx, cy, r);
+  g.addColorStop(0, 'rgba(0,0,0,1)');
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  o.fillStyle = g;
+  o.fillRect(0, 0, w, h);
+  ctx.drawImage(off, x, y);
+}
+
 /**
  * Couple illustration in the bottom-right corner: the configured crop, with its
  * top and left edges feathered into the paper. Returns the drawn box.
@@ -253,14 +300,33 @@ function drawCornerArt(ctx, art) {
 function drawFramedCard(ctx, lang, t, f, c, floral, art) {
   const center = (text, y) => ctx.fillText(text, W / 2, y);
 
-  // Paper background with soft warm vignette.
-  ctx.fillStyle = c.paper;
+  // Paper background: the illustration's own paper tone when there is art.
+  const [pr, pg, pb] = art ? sampleColor(art, [0.42, 0.72], [0.01, 0.09]) : [247, 240, 230];
+  ctx.fillStyle = `rgb(${pr},${pg},${pb})`;
   ctx.fillRect(0, 0, W, H);
   const glow = ctx.createRadialGradient(W / 2, H * 0.42, 100, W / 2, H * 0.42, H * 0.75);
-  glow.addColorStop(0, c.paperLight);
-  glow.addColorStop(1, 'rgba(232,217,196,0.9)');
+  glow.addColorStop(0, 'rgba(255,252,248,0.75)');
+  glow.addColorStop(1, `rgba(${pr - 14},${pg - 16},${pb - 18},0.55)`);
   ctx.fillStyle = glow;
   ctx.fillRect(0, 0, W, H);
+
+  const shoulder = 420;
+  const peak = 150;
+
+  // Arched panel, lighter than the paper.
+  archFrame(ctx, 92, shoulder, peak);
+  ctx.fillStyle = 'rgba(255,252,248,0.55)';
+  ctx.fill();
+
+  // Painted flowers cut from the illustration, feathered into the corners.
+  if (art) {
+    // The illustration's top-left flower cluster, reused (flipped) in three corners.
+    const sx = [0, 0.34];
+    const sy = [0, 0.27];
+    paintedPatch(ctx, art, sx, sy, 0, 0, 420, 500, 'tl');
+    paintedPatch(ctx, art, sx, sy, W - 360, 0, 360, 430, 'tr');
+    paintedPatch(ctx, art, sx, sy, 0, H - 500, 420, 500, 'bl');
+  }
 
   // Outer double border.
   ctx.strokeStyle = c.gold;
@@ -269,12 +335,8 @@ function drawFramedCard(ctx, lang, t, f, c, floral, art) {
   ctx.lineWidth = 1;
   ctx.strokeRect(48, 48, W - 96, H - 96);
 
-  // Arched inner frame: filled panel + double gold line + crest ornament.
-  const shoulder = 420;
-  const peak = 150;
+  // Arched frame: double gold line + crest ornament.
   archFrame(ctx, 92, shoulder, peak);
-  ctx.fillStyle = 'rgba(253,250,245,0.82)';
-  ctx.fill();
   ctx.strokeStyle = c.gold;
   ctx.lineWidth = 2;
   ctx.stroke();
@@ -289,17 +351,19 @@ function drawFramedCard(ctx, lang, t, f, c, floral, art) {
   ctx.fillRect(-9, -9, 18, 18);
   ctx.restore();
 
-  // Floral clusters: top-left and bottom-left; bottom-right too when there is no art.
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(36, 36, W - 72, H - 72);
-  ctx.clip();
-  floralCluster(ctx, floral, 36, 190, false, true, 250, true);
-  floralCluster(ctx, floral, 20, H - 40, false, false, 360);
-  if (!art) floralCluster(ctx, floral, W - 20, H - 40, true, false, 360);
-  ctx.restore();
-
-  if (art) drawCornerArt(ctx, art);
+  if (art) {
+    drawCornerArt(ctx, art);
+  } else {
+    // Drawn floral clusters when there is no illustration.
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(36, 36, W - 72, H - 72);
+    ctx.clip();
+    floralCluster(ctx, floral, 36, 190, false, true, 250, true);
+    floralCluster(ctx, floral, 20, H - 40, false, false, 360);
+    floralCluster(ctx, floral, W - 20, H - 40, true, false, 360);
+    ctx.restore();
+  }
 
   const maxText = 800;
 
