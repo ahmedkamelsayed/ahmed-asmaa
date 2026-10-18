@@ -1,0 +1,10 @@
+node_modules/
+dist/
+dist-ssr/
+*.log
+.DS_Store
+# Generated single-file copy (npm run build:single)
+single-file/
+ahmed-asmaa-invitation.html
+# Original photo — the site uses the copy in public/images/
+A&A.jpeg
