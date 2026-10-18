@@ -31,10 +31,12 @@ export const config = {
   },
 
   // Saved invitation card ("Save Invitation" button).
-  // `art`: optional couple illustration — a licensed PNG with transparent
-  // background in public/images/, e.g. 'images/couple.png'. Empty = no art.
+  // `art`: optional couple illustration in public/images/ (portrait, about 2:3).
+  // It fills the bottom of the card; `artCrop` = [top, bottom] fractions of
+  // the image to show. Set art: '' for a text-only card.
   card: {
-    art: '',
+    art: 'images/couple-illustration.jpg',
+    artCrop: [0.06, 0.72],
   },
 
   // Optional background music. Leave `src` empty to hide the music button.
