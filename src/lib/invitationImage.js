@@ -174,8 +174,7 @@ export async function renderInvitationImage(lang, t) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
 
-  if (art) drawArtCard(ctx, lang, t, f, c, art);
-  else drawFramedCard(ctx, lang, t, f, c, floral);
+  drawFramedCard(ctx, lang, t, f, c, floral, art);
 
   return new Promise((resolve, reject) =>
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/png'),
@@ -209,89 +208,49 @@ function drawNames(ctx, lang, t, f, c, y, size, maxWidth) {
   ctx.restore();
 }
 
-/** Text on paper at the top, the couple illustration filling the bottom. */
-function drawArtCard(ctx, lang, t, f, c, art) {
-  const center = (text, y) => ctx.fillText(text, W / 2, y);
-  const maxText = 820;
+/**
+ * Couple illustration in the bottom-right corner: the configured crop, with its
+ * top and left edges feathered into the paper. Returns the drawn box.
+ */
+function drawCornerArt(ctx, art) {
+  const { x: [x0, x1], y: [y0, y1] } = config.card.artCrop;
+  const sx = art.naturalWidth * x0;
+  const sy = art.naturalHeight * y0;
+  const sw = art.naturalWidth * (x1 - x0);
+  const sh = art.naturalHeight * (y1 - y0);
+  const w = config.card.artWidth || 500;
+  const h = Math.round((sh / sw) * w);
 
-  ctx.fillStyle = c.paper;
-  ctx.fillRect(0, 0, W, H);
+  const off = document.createElement('canvas');
+  off.width = w;
+  off.height = h;
+  const o = off.getContext('2d');
+  o.drawImage(art, sx, sy, sw, sh, 0, 0, w, h);
+  o.globalCompositeOperation = 'destination-in';
+  const left = o.createLinearGradient(0, 0, w * 0.22, 0);
+  left.addColorStop(0, 'rgba(0,0,0,0)');
+  left.addColorStop(1, 'rgba(0,0,0,1)');
+  o.fillStyle = left;
+  o.fillRect(0, 0, w, h);
+  const top = o.createLinearGradient(0, 0, 0, h * 0.18);
+  top.addColorStop(0, 'rgba(0,0,0,0)');
+  top.addColorStop(1, 'rgba(0,0,0,1)');
+  o.fillStyle = top;
+  o.fillRect(0, 0, w, h);
+  const right = o.createLinearGradient(w, 0, w * 0.88, 0);
+  right.addColorStop(0, 'rgba(0,0,0,0)');
+  right.addColorStop(1, 'rgba(0,0,0,1)');
+  o.fillStyle = right;
+  o.fillRect(0, 0, w, h);
 
-  // Measure the message first: the illustration fills whatever space the text leaves.
-  ctx.font = f.body(lang === 'ar' ? 42 : 40);
-  const lines = wrapLines(ctx, t.story.message, 880).slice(0, 4);
-  const lh = lang === 'ar' ? 66 : 54;
-  const msgTop = 950;
-  const textEnd = msgTop + (lines.length - 1) * lh;
-
-  // Illustration: full card width from `artCrop[0]` (just above the heads),
-  // as tall as the remaining space allows, bottom-aligned.
-  const ct = (config.card.artCrop || [0])[0];
-  const dy = Math.max(textEnd + 45, H - (art.naturalHeight * (1 - ct) * W) / art.naturalWidth);
-  const dh = H - dy;
-  const sy = art.naturalHeight * ct;
-  const sh = (dh / W) * art.naturalWidth;
-  ctx.drawImage(art, 0, sy, art.naturalWidth, sh, 0, dy, W, dh);
-
-  // Soft fade from the paper into the illustration.
-  const fade = ctx.createLinearGradient(0, dy, 0, dy + 120);
-  fade.addColorStop(0, c.paper);
-  fade.addColorStop(1, 'rgba(247,240,230,0)');
-  ctx.fillStyle = fade;
-  ctx.fillRect(0, dy - 1, W, 122);
-
-  // Gentle paper glow behind the text.
-  const glow = ctx.createRadialGradient(W / 2, dy * 0.45, 50, W / 2, dy * 0.45, dy * 0.8);
-  glow.addColorStop(0, 'rgba(253,250,245,0.9)');
-  glow.addColorStop(1, 'rgba(253,250,245,0)');
-  ctx.fillStyle = glow;
-  ctx.fillRect(0, 0, W, dy + 200);
-
-  // Eyebrow.
-  ctx.fillStyle = c.goldDeep;
-  const eyebrow = lang === 'en' ? t.cover.eyebrow.toUpperCase() : t.cover.eyebrow;
-  if (lang === 'en' && 'letterSpacing' in ctx) ctx.letterSpacing = '4px';
-  fitFont(ctx, f.label, lang === 'en' ? 34 : 46, eyebrow, 900);
-  center(eyebrow, 150);
-  if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
-  ornament(ctx, 205, 130, c);
-
-  drawNames(ctx, lang, t, f, c, 370, lang === 'ar' ? 160 : 156, 900);
-
-  ctx.fillStyle = c.roseDeep;
-  fitFont(ctx, f.label, lang === 'ar' ? 54 : 48, t.cover.type, maxText);
-  center(t.cover.type, 472);
-
-  ctx.fillStyle = c.ink;
-  fitFont(ctx, f.title, 62, dateFull(lang), 900);
-  center(dateFull(lang), 580);
-  ctx.fillStyle = c.roseDeep;
-  fitFont(ctx, f.title, 58, timeText(lang), maxText);
-  center(timeText(lang), 658);
-  ctx.fillStyle = c.ink;
-  fitFont(ctx, f.title, lang === 'ar' ? 62 : 60, t.venue.name, maxText);
-  center(t.venue.name, 750);
-  ctx.fillStyle = c.inkSoft;
-  fitFont(ctx, f.body, 42, t.venue.location, 900);
-  center(t.venue.location, 812);
-
-  ornament(ctx, 870, 120, c);
-
-  ctx.fillStyle = c.inkSoft;
-  ctx.font = f.body(lang === 'ar' ? 42 : 40);
-  lines.forEach((line, i) => center(line, msgTop + i * lh));
-
-  // Thin double border over everything.
-  ctx.strokeStyle = c.gold;
-  ctx.lineWidth = 2;
-  ctx.strokeRect(36, 36, W - 72, H - 72);
-  ctx.lineWidth = 1;
-  ctx.strokeStyle = 'rgba(255,253,249,0.8)';
-  ctx.strokeRect(48, 48, W - 96, H - 96);
+  const x = W - 40 - w;
+  const y = H - 40 - h;
+  ctx.drawImage(off, x, y);
+  return { x, y, w, h };
 }
 
-/** Text-only card: arched ornamental frame with floral corners. */
-function drawFramedCard(ctx, lang, t, f, c, floral) {
+/** Arched ornamental frame with floral corners; couple art bottom-right if given. */
+function drawFramedCard(ctx, lang, t, f, c, floral, art) {
   const center = (text, y) => ctx.fillText(text, W / 2, y);
 
   // Paper background with soft warm vignette.
@@ -330,61 +289,65 @@ function drawFramedCard(ctx, lang, t, f, c, floral) {
   ctx.fillRect(-9, -9, 18, 18);
   ctx.restore();
 
-  // Floral clusters: top-left and both bottom corners.
+  // Floral clusters: top-left and bottom-left; bottom-right too when there is no art.
   ctx.save();
   ctx.beginPath();
   ctx.rect(36, 36, W - 72, H - 72);
   ctx.clip();
-  floralCluster(ctx, floral, 36, 230, false, true, 280, true);
+  floralCluster(ctx, floral, 36, 190, false, true, 250, true);
   floralCluster(ctx, floral, 20, H - 40, false, false, 360);
-  floralCluster(ctx, floral, W - 20, H - 40, true, false, 360);
+  if (!art) floralCluster(ctx, floral, W - 20, H - 40, true, false, 360);
   ctx.restore();
 
-  const maxText = 760;
+  if (art) drawCornerArt(ctx, art);
+
+  const maxText = 800;
 
   // Eyebrow.
   ctx.fillStyle = c.goldDeep;
   const eyebrow = lang === 'en' ? t.cover.eyebrow.toUpperCase() : t.cover.eyebrow;
   if (lang === 'en' && 'letterSpacing' in ctx) ctx.letterSpacing = '4px';
-  fitFont(ctx, f.label, lang === 'en' ? 28 : 38, eyebrow, 600);
-  center(eyebrow, 370);
+  fitFont(ctx, f.label, lang === 'en' ? 32 : 44, eyebrow, 560);
+  center(eyebrow, 352);
   if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
-  ornament(ctx, 420, 120, c);
+  ornament(ctx, 405, 120, c);
 
-  drawNames(ctx, lang, t, f, c, 590, lang === 'ar' ? 130 : 128, 740);
+  drawNames(ctx, lang, t, f, c, 565, 150, 800);
 
   // Event type.
   ctx.fillStyle = c.roseDeep;
-  fitFont(ctx, f.label, lang === 'ar' ? 46 : 40, t.cover.type, maxText);
-  center(t.cover.type, 680);
+  fitFont(ctx, f.label, lang === 'ar' ? 54 : 48, t.cover.type, maxText);
+  center(t.cover.type, 665);
 
   // Details.
   ctx.fillStyle = c.ink;
-  fitFont(ctx, f.title, lang === 'ar' ? 52 : 52, dateFull(lang), maxText);
-  center(dateFull(lang), 790);
+  fitFont(ctx, f.title, 60, dateFull(lang), maxText);
+  center(dateFull(lang), 775);
   ctx.fillStyle = c.roseDeep;
-  fitFont(ctx, f.title, lang === 'ar' ? 48 : 48, timeText(lang), maxText);
-  center(timeText(lang), 862);
+  fitFont(ctx, f.title, 56, timeText(lang), maxText);
+  center(timeText(lang), 850);
   ctx.fillStyle = c.ink;
-  fitFont(ctx, f.title, lang === 'ar' ? 50 : 48, t.venue.name, maxText);
-  center(t.venue.name, 945);
+  fitFont(ctx, f.title, 58, t.venue.name, maxText);
+  center(t.venue.name, 940);
   ctx.fillStyle = c.inkSoft;
-  fitFont(ctx, f.body, lang === 'ar' ? 36 : 36, t.venue.location, maxText);
-  center(t.venue.location, 1000);
+  fitFont(ctx, f.body, 42, t.venue.location, maxText);
+  center(t.venue.location, 1002);
 
-  ornament(ctx, 1065, 110, c);
+  ornament(ctx, 1070, 110, c);
 
   // Invitation message.
   ctx.fillStyle = c.inkSoft;
-  ctx.font = f.body(lang === 'ar' ? 38 : 38);
-  const lines = wrapLines(ctx, t.story.message, 740).slice(0, 5);
-  const lh = lang === 'ar' ? 62 : 52;
-  lines.forEach((line, i) => center(line, 1140 + i * lh));
-  const textEnd = 1140 + (lines.length - 1) * lh;
+  ctx.font = f.body(lang === 'ar' ? 44 : 42);
+  const lines = wrapLines(ctx, t.story.message, 780).slice(0, 5);
+  const lh = lang === 'ar' ? 68 : 56;
+  lines.forEach((line, i) => center(line, 1150 + i * lh));
+  const textEnd = 1150 + (lines.length - 1) * lh;
 
-  // Closing line in script.
-  ctx.fillStyle = c.roseDeep;
-  fitFont(ctx, f.names, lang === 'ar' ? 64 : 72, t.closing.line, 680);
-  center(t.closing.line, textEnd + 170);
-  ornament(ctx, textEnd + 250, 90, c);
+  if (!art) {
+    // Closing line in script.
+    ctx.fillStyle = c.roseDeep;
+    fitFont(ctx, f.names, lang === 'ar' ? 64 : 72, t.closing.line, 680);
+    center(t.closing.line, textEnd + 170);
+    ornament(ctx, textEnd + 250, 90, c);
+  }
 }
